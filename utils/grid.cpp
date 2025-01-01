@@ -2,14 +2,15 @@
 #include "constants.hpp"
 #include "raylib.h"
 #include <cstdlib>
-#include <iostream>
+#include <ctime>
 #include <vector>
 
 Grid::Grid(int rows, int cols, int size)
     : rows(rows), cols(cols), cellSize(size) {
   board = std::vector(rows, std::vector(cols, CellStatus::DEAD));
+  dRow = {1, -1, 0, 0, 1, -1, 1, -1};
+  dCol = {0, 0, 1, -1, 1, -1, -1, 1};
 }
-
 void Grid::draw() {
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
@@ -24,106 +25,70 @@ void Grid::draw() {
 
 void Grid::simulate() {
 
-  std::vector<std::vector<CellStatus>> new_board(
+  std::vector<std::vector<CellStatus>> newBoard(
       rows, std::vector<CellStatus>(cols, CellStatus::DEAD));
-
-  std::vector<int> dx = {1, -1, 0, 0, 1, -1, 1, -1};
-  std::vector<int> dy = {0, 0, 1, -1, 1, -1, -1, 1};
 
   for (int row = 0; row < rows; row++) {
     for (int col = 0; col < cols; col++) {
 
-      int live_neighbours = 0;
-      CellStatus curr_status = board[row][col];
+      int liveNeighbours = 0;
+      CellStatus currStatus = board[row][col];
 
-      for (int k = 0; k < dx.size(); k++) {
-        int new_row = row + dx[k];
-        int new_col = col + dy[k];
-        if (is_valid(new_row, new_col)) {
-          live_neighbours +=
-              (board[new_row][new_col] == CellStatus::ALIVE ? 1 : 0);
+      for (int k = 0; k < dRow.size(); k++) {
+        int newRow = row + dRow[k];
+        int newCol = col + dCol[k];
+        if (is_valid(newRow, newCol)) {
+          liveNeighbours +=
+              (board[newRow][newCol] == CellStatus::ALIVE ? 1 : 0);
         }
       }
-      if (live_neighbours < 2) {
-        new_board[row][col] = CellStatus::DEAD;
-      } else if ((live_neighbours == 2 || live_neighbours == 3) &&
-                 curr_status == CellStatus::ALIVE) {
-        new_board[row][col] = CellStatus::ALIVE;
-      } else if (live_neighbours > 3) {
-        new_board[row][col] = CellStatus::DEAD;
-      } else if (live_neighbours == 3) {
-        new_board[row][col] = CellStatus::ALIVE;
+      if (liveNeighbours < 2) {
+        newBoard[row][col] = CellStatus::DEAD;
+      } else if ((liveNeighbours == 2 || liveNeighbours == 3) &&
+                 currStatus == CellStatus::ALIVE) {
+        newBoard[row][col] = CellStatus::ALIVE;
+      } else if (liveNeighbours > 3) {
+        newBoard[row][col] = CellStatus::DEAD;
+      } else if (liveNeighbours == 3) {
+        newBoard[row][col] = CellStatus::ALIVE;
       }
     }
   }
 
   for (int i = 0; i < board.size(); i++) {
     for (int j = 0; j < board[i].size(); j++) {
-      board[i][j] = new_board[i][j];
+      board[i][j] = newBoard[i][j];
     }
   }
 }
 
+void Grid::setCellValue(int mouseX, int mouseY) {
+  // calc the pos of the row and col
+  if (mouseY > game_constants::GRID_HEIGHT)
+    throw 1;
+  int row = mouseY / game_constants::CELL_SIZE;
+  int col = mouseX / game_constants::CELL_SIZE;
+  board[row][col] = CellStatus::ALIVE;
+}
+
 void Grid::generateRandom() {
-  board[1][5] = CellStatus::ALIVE;
-  board[2][5] = CellStatus::ALIVE;
-  board[1][6] = CellStatus::ALIVE;
-  board[2][6] = CellStatus::ALIVE;
+  srand(std::time(nullptr));
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      int x = rand() % 8;
+      if (x == 1) {
+        board[i][j] = CellStatus::ALIVE;
+      }
+    }
+  }
+}
 
-  board[11][5] = CellStatus::ALIVE;
-  board[11][6] = CellStatus::ALIVE;
-  board[11][7] = CellStatus::ALIVE;
-  board[12][4] = CellStatus::ALIVE;
-  board[12][8] = CellStatus::ALIVE;
-  board[13][3] = CellStatus::ALIVE;
-  board[13][9] = CellStatus::ALIVE;
-  board[14][3] = CellStatus::ALIVE;
-  board[14][9] = CellStatus::ALIVE;
-  board[15][6] = CellStatus::ALIVE;
-  board[16][4] = CellStatus::ALIVE;
-  board[16][8] = CellStatus::ALIVE;
-  board[17][5] = CellStatus::ALIVE;
-  board[17][6] = CellStatus::ALIVE;
-  board[17][7] = CellStatus::ALIVE;
-  board[18][6] = CellStatus::ALIVE;
-
-  board[21][3] = CellStatus::ALIVE;
-  board[21][4] = CellStatus::ALIVE;
-  board[21][5] = CellStatus::ALIVE;
-  board[22][3] = CellStatus::ALIVE;
-  board[22][4] = CellStatus::ALIVE;
-  board[22][5] = CellStatus::ALIVE;
-  board[23][2] = CellStatus::ALIVE;
-  board[23][6] = CellStatus::ALIVE;
-  board[25][1] = CellStatus::ALIVE;
-  board[25][2] = CellStatus::ALIVE;
-  board[25][6] = CellStatus::ALIVE;
-  board[25][7] = CellStatus::ALIVE;
-
-  // Add R-pentomino (chaotic growth pattern)
-  board[8][10] = CellStatus::ALIVE;
-  board[9][11] = CellStatus::ALIVE;
-  board[10][9] = CellStatus::ALIVE;
-  board[10][10] = CellStatus::ALIVE;
-  board[10][11] = CellStatus::ALIVE;
-
-  // Add a Diehard pattern (lasts 130 generations)
-  board[24][12] = CellStatus::ALIVE;
-  board[25][6] = CellStatus::ALIVE;
-  board[25][7] = CellStatus::ALIVE;
-  board[25][11] = CellStatus::ALIVE;
-  board[25][12] = CellStatus::ALIVE;
-  board[25][13] = CellStatus::ALIVE;
-  board[23][7] = CellStatus::ALIVE;
-
-  // Add Acorn pattern (grows for over 5200 generations)
-  board[4][2] = CellStatus::ALIVE;
-  board[6][3] = CellStatus::ALIVE;
-  board[3][4] = CellStatus::ALIVE;
-  board[4][4] = CellStatus::ALIVE;
-  board[6][4] = CellStatus::ALIVE;
-  board[4][6] = CellStatus::ALIVE;
-  board[4][7] = CellStatus::ALIVE;
+void Grid::clear() {
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      board[i][j] = CellStatus::DEAD;
+    }
+  }
 }
 
 bool Grid::is_valid(int row, int col) {
