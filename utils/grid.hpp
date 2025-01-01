@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-enum CellStatus { ALIVE, DEAD };
+enum CellStatus { DEAD, ALIVE };
 
 class Grid {
   int rows;
@@ -13,4 +13,8 @@ public:
   Grid(int rows, int cols, int size);
   void draw();
   void generateRandom();
+  void simulate();
+
+private:
+  bool is_valid(int row, int col);
 };
